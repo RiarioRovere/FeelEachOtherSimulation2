@@ -96,6 +96,8 @@ public:
         rx_timeslot = constant_rx_timeslot.value_or(get_random_timeslot(rx_length));
         this->constant_rx_timeslot = constant_rx_timeslot;
         this->on_start_supercycle_jitter = on_start_supercycle_jitter;
+
+        this->timers.turn_on_at = timers.absolute_time + get_random_int(0, configuration->supercycle_length / 4 * 3);
     }
 
     void tick(int n) {
@@ -106,14 +108,14 @@ public:
 
     void tick() {
         // if new supercycle has began
-        if (timers.relative_time == 0 && state != OFF) {
+        if (timers.relative_time == 0) {
             on_new_supercycle();
         }
 
         process_state();
 
-        ++timers.absolute_time;
         ++timers.state_timer;
+        ++timers.absolute_time;
         if (state != OFF) {
             timers.relative_time = (++timers.relative_time) % configuration->supercycle_length;
         }
@@ -214,15 +216,15 @@ private:
     void on_new_supercycle() {
         rx_timeslot = constant_rx_timeslot.value_or(get_random_timeslot(rx_length));
         received_ids_per_supercycle.clear();
-        if (on_start_supercycle_jitter) {
-            if (timers.supercycle_cnt % 100 != 0) {
-                timers.turn_on_at = timers.absolute_time + get_random_int(0, 300);
-            } else {
-                timers.turn_on_at = timers.absolute_time + get_random_int(0, configuration->supercycle_length / 4 * 3);
-            }
-
-            set_state(OFF);
-        }
+//        if (on_start_supercycle_jitter) {
+//            if (timers.supercycle_cnt % 100 != 0) {
+//                timers.turn_on_at = timers.absolute_time + get_random_int(0, 300);
+//            } else {
+//                timers.turn_on_at = timers.absolute_time + get_random_int(0, configuration->supercycle_length / 4 * 3);
+//            }
+//
+//            set_state(OFF);
+//        }
         timers.supercycle_cnt++;
     }
 

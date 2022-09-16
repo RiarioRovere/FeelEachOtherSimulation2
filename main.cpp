@@ -7,7 +7,7 @@
 #include "radio_channel.h"
 #include "configuration.h"
 
-constexpr int LOCKET_CNT = 3;
+constexpr int LOCKET_CNT = 50;
 
 ostream &operator<<(ostream &o, const set<int> &state) {
     for (auto s : state) {

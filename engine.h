@@ -25,13 +25,13 @@ public:
             tick();
         }
 //        print_all_states();
-        while ((*lockets)[0].timers.relative_time > 0) {
+        do {
             tick();
-        }
+        } while ((*lockets)[0].timers.relative_time > 0);
 //        for (int i = 0; i < configuration->supercycle_length; ++i) {
 //            tick();
 //        }
-//        print_all_states();
+        print_all_states();
     }
 
 private:
