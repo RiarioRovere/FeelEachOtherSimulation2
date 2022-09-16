@@ -5,20 +5,33 @@
 #pragma once
 
 #include "locket.h"
+#include "configuration.h"
 
 class TEngine {
 public:
+    TConfiguration *configuration;
+
     TEngine(
             vector<Locket> *lockets,
-            TRadioChannel *radioChannel
+            TRadioChannel *radioChannel,
+            TConfiguration *configuration
     ) : radioChannel(radioChannel) {
         this->lockets = lockets;
+        this->configuration = configuration;
     }
 
     void run_supercycle() {
-        for (int i = 0; i < SUPERCYCLE_LENGTH; ++i) {
+        while ((*lockets)[0].state == OFF) {
             tick();
         }
+//        print_all_states();
+        while ((*lockets)[0].timers.relative_time > 0) {
+            tick();
+        }
+//        for (int i = 0; i < configuration->supercycle_length; ++i) {
+//            tick();
+//        }
+//        print_all_states();
     }
 
 private:
@@ -32,16 +45,16 @@ private:
 //        LOG_EVERY_N(INFO, 100000) << "Process " << google::COUNTER << "th tick";
 
         for (auto &locket: *lockets) {
-            if (tx_lockets.contains(locket.locket_id)) {
+            if (tx_lockets.count(locket.locket_id) > 0) {
                 locket.tick();
-                CHECK(locket.ts == ts + 1) << "locket_ts = " << locket.ts << " engine ts = " << ts;
+                CHECK(locket.timers.absolute_time == ts + 1) << "locket_ts = " << locket.timers.absolute_time << " engine ts = " << ts;
             }
         }
 
         for (auto &locket: *lockets) {
-            if (!tx_lockets.contains(locket.locket_id)) {
+            if (tx_lockets.count(locket.locket_id) == 0) {
                 locket.tick();
-                CHECK(locket.ts == ts + 1) << "locket_ts = " << locket.ts << " engine ts = " << ts;
+                CHECK(locket.timers.absolute_time == ts + 1) << "locket_ts = " << locket.timers.absolute_time << " engine ts = " << ts;
             }
         }
 
@@ -56,5 +69,12 @@ private:
             if (locket.state == TX) ans.insert(locket.locket_id);
         }
         return ans;
+    }
+
+    void print_all_states() {
+        for (auto &locket : *lockets) {
+            cout << locket.locket_id << ":" << locket.state << "; ";
+        }
+        cout << endl;
     }
 };
