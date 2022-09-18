@@ -13,11 +13,14 @@ public:
     int timeslot_size{};
     bool on_start_jitter{};
     bool log_all_events{};
+    int TX_CONSUMPTION = 20;
+    int RX_CONSUMPTION = 20;
+    int WAKE_UP_CONSUMPTION = 8;
 
     explicit TConfiguration(int tx_time = 2 * 1e3,
                             int supercycle_length = 4e6,
                             int channel_check_time = 300,
-                            int timeslot_cnt = 16,
+                            int timeslot_cnt = 24,
                             int on_start_jitter = true) {
         this->tx_time = tx_time;
         this->supercycle_length = supercycle_length;

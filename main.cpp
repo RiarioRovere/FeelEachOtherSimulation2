@@ -37,6 +37,8 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < 10 ; ++i) {
         engine.run_supercycle();
         cout << "Locket has received: " << lockets[0].received_ids_per_supercycle.size() << " = " << lockets[0].received_ids_per_supercycle << endl;
+        double mah = lockets[0].power_consumption * 1.0 / 1000 / 1000 / 3600;
+        cout << "Consumption: " << 700 / mah * 4 / 3600 / 24 << endl; // mAh
     }
 
     LOG(INFO) << "Simulation has finished";

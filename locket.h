@@ -243,6 +243,7 @@ private:
     void on_new_supercycle() {
         rx_timeslot = constant_rx_timeslot.value_or(get_random_timeslot(rx_length));
         received_ids_per_supercycle.clear();
+        power_consumption = 0;
 //        if (on_start_supercycle_jitter) {
 //            if (timers.supercycle_cnt % 100 != 0) {
 //                timers.turn_on_at = timers.absolute_time + get_random_int(0, 300);
@@ -291,6 +292,8 @@ private:
     }
 
     void process_state() {
+        power_consumption += 1;
+
         switch (state) {
             case EState::OFF:
                 on_off();
@@ -299,21 +302,27 @@ private:
                 on_sleep();
                 break;
             case EState::WAKING_UP:
+                power_consumption += configuration->WAKE_UP_CONSUMPTION;
                 on_waking_up();
                 break;
             case EState::RX:
+                power_consumption += configuration->RX_CONSUMPTION;
                 on_rx();
                 break;
             case EState::CHANNEL_CHECK:
+                power_consumption += configuration->RX_CONSUMPTION;
                 on_channel_check();
                 break;
             case EState::TX:
+                power_consumption += configuration->TX_CONSUMPTION;
                 on_tx();
                 break;
             case EState::BEFORE_RX_CHANNEL_CHECK:
+                power_consumption += configuration->RX_CONSUMPTION;
                 on_before_rx_channel_check();
                 break;
             case EState::BEFORE_RX_TX:
+                power_consumption += configuration->TX_CONSUMPTION;
                 on_before_rx_tx();
                 break;
         }
