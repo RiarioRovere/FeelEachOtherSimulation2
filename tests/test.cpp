@@ -15,6 +15,7 @@ class LocketTest : public ::testing::Test {
 protected:
     void SetUp() override {
         configuration.tx_time = 5;
+        configuration.on_start_jitter = false;
         radioChannel = TRadioChannel();
         engine = TEngine(&lockets, &radioChannel, &configuration);
     }
@@ -41,7 +42,7 @@ TEST_F(LocketTest, EmptyReceive) {
 TEST_F(LocketTest, ReceiveOtherLocket) {
     lockets = vector<Locket>(2);
     lockets[0] = Locket(&radioChannel, 0, 0, optional<bool>(0), &configuration);
-    lockets[1] = Locket(&radioChannel, 1, 0, optional<bool>(1), &configuration);
+    lockets[1] = Locket(&radioChannel, 1, 1, optional<bool>(1), &configuration);
 
     for (int i = 0; i < 1; ++i) {
         engine.run_supercycle();
@@ -67,8 +68,8 @@ TEST_F(LocketTest, TestInterference) {
 TEST_F(LocketTest, TestReceiveTwoLocketsWithChannelCheckDelay) {
     lockets = vector<Locket>(3);
     lockets[0] = Locket(&radioChannel, 0, 0, optional<bool>(0), &configuration);
-    lockets[1] = Locket(&radioChannel, 1, 0, optional<bool>(1), &configuration);
-    lockets[2] = Locket(&radioChannel, 2, 1, optional<bool>(1), &configuration);
+    lockets[1] = Locket(&radioChannel, 1, 1, optional<bool>(1), &configuration);
+    lockets[2] = Locket(&radioChannel, 2, 2, optional<bool>(1), &configuration);
 
     for (int i = 0; i < 1; ++i) {
         engine.run_supercycle();
@@ -81,14 +82,29 @@ TEST_F(LocketTest, TestReceiveTwoLocketsWithChannelCheckDelay) {
 TEST_F(LocketTest, OnSecondSupercycle) {
     lockets = vector<Locket>(3);
     lockets[0] = Locket(&radioChannel, 0, 0, optional<bool>(0), &configuration);
-    lockets[1] = Locket(&radioChannel, 1, 0, optional<bool>(1), &configuration);
-    lockets[2] = Locket(&radioChannel, 2, 1, optional<bool>(1), &configuration);
+    lockets[1] = Locket(&radioChannel, 1, 1, optional<bool>(1), &configuration);
+    lockets[2] = Locket(&radioChannel, 2, 2, optional<bool>(1), &configuration);
 
     for (int i = 0; i < 1; ++i) {
         engine.run_supercycle();
     }
+
     lockets[0].tick();
 
     set<int> ans = {};
+    ASSERT_EQ(lockets[0].received_ids_per_supercycle, ans);
+}
+
+TEST_F(LocketTest, TxBeforeRx) {
+    lockets = vector<Locket>(2);
+    configuration.log_all_events = true;
+    lockets[0] = Locket(&radioChannel, 0, 0, optional<bool>(0), &configuration);
+    lockets[1] = Locket(&radioChannel, 1, 316, optional<bool>(0), &configuration);
+
+    for (int i = 0; i < 1; ++i) {
+        engine.run_supercycle();
+    }
+
+    set<int> ans = {1};
     ASSERT_EQ(lockets[0].received_ids_per_supercycle, ans);
 }

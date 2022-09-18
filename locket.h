@@ -27,12 +27,13 @@ enum EState {
     RX,
     CHANNEL_CHECK,
     TX,
-    TXRX, // TX that right before RX
+    BEFORE_RX_CHANNEL_CHECK,
+    BEFORE_RX_TX, // TX that right before RX
 };
 
 ostream &operator<<(ostream &o, EState state) {
     static const string NAMES[] = {
-            "OFF", "SLEEP", "WAKING_UP", "RX", "CHANNEL_CHECK", "TX", "TXRX"
+            "OFF", "SLEEP", "WAKING_UP", "RX", "CHANNEL_CHECK", "TX", "BEFORE_RX_CHANNEL_CHECK", "BEFORE_RX_TX"
     };
     return o << NAMES[state];
 }
@@ -70,7 +71,9 @@ public:
     // Предопределенный timeslot приема
     optional<int> constant_rx_timeslot;
     bool on_start_supercycle_jitter;
+    bool is_channel_free;
     static bool enable_logging;
+    int power_consumption = 0;
 
     // settings
     TConfiguration* configuration;
@@ -96,8 +99,13 @@ public:
         rx_timeslot = constant_rx_timeslot.value_or(get_random_timeslot(rx_length));
         this->constant_rx_timeslot = constant_rx_timeslot;
         this->on_start_supercycle_jitter = on_start_supercycle_jitter;
+        this->is_channel_free = true;
 
-        this->timers.turn_on_at = timers.absolute_time + get_random_int(0, configuration->supercycle_length / 4 * 3);
+        this->timers.turn_on_at = turn_on_at;
+        if (configuration->on_start_jitter) {
+            this->timers.turn_on_at =
+                    timers.absolute_time + get_random_int(0, configuration->supercycle_length / 4 * 3);
+        }
     }
 
     void tick(int n) {
@@ -124,13 +132,14 @@ public:
 private:
     void set_state(const EState new_state) {
         if (locket_id == 0) {
-            Locket::enable_logging = new_state == RX;
-//            Locket::enable_logging = true;
+//            Locket::enable_logging = new_state == RX || configuration->log_all_events;
+            Locket::enable_logging = false;
 
             if (state == RX && new_state != RX) {
                 cout << "RX duration = " << timers.state_timer + 1 << "/" << configuration->timeslot_size << endl;
             }
         }
+        is_channel_free = true;
         received_packets = {-1, 0};
         timers.state_timer = 0;
 
@@ -157,7 +166,8 @@ private:
             return;
         }
         if (get_current_timeslot() == rx_timeslot) {
-            set_state(RX);
+            set_state(BEFORE_RX_CHANNEL_CHECK);
+//            set_state(RX);
         } else {
             set_state(CHANNEL_CHECK);
         }
@@ -188,10 +198,14 @@ private:
 
     void on_channel_check() {
         if (!radio_channel->is_channel_free()) {
-            this->sleep(configuration->tx_time);
+            is_channel_free = false;
         }
         if (timers.state_timer == configuration->channel_check_time) {
-            set_state(TX);
+            if (is_channel_free) {
+                set_state(TX);
+            } else {
+                this->sleep(configuration->tx_time);
+            }
         }
     }
 
@@ -204,7 +218,20 @@ private:
         }
     }
 
-    void on_txrx() {
+    void on_before_rx_channel_check() {
+        if (!radio_channel->is_channel_free()) {
+            is_channel_free = false;
+        }
+        if (timers.state_timer == configuration->channel_check_time) {
+            if (is_channel_free) {
+                set_state(BEFORE_RX_TX);
+            } else {
+                set_state(RX);
+            }
+        }
+    }
+
+    void on_before_rx_tx() {
         radio_channel->transmit(locket_id);
 
         if (timers.state_timer == configuration->tx_time) {
@@ -283,8 +310,11 @@ private:
             case EState::TX:
                 on_tx();
                 break;
-            case EState::TXRX:
-                on_txrx();
+            case EState::BEFORE_RX_CHANNEL_CHECK:
+                on_before_rx_channel_check();
+                break;
+            case EState::BEFORE_RX_TX:
+                on_before_rx_tx();
                 break;
         }
     }

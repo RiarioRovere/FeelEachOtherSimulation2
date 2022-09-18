@@ -21,16 +21,20 @@ public:
     }
 
     void run_supercycle() {
+        int cnt = 0;
         while ((*lockets)[0].state == OFF) {
             tick();
+            cnt++;
         }
 //        print_all_states();
         do {
             tick();
+            cnt++;
         } while ((*lockets)[0].timers.relative_time > 0);
 //        for (int i = 0; i < configuration->supercycle_length; ++i) {
 //            tick();
 //        }
+        cout << "Supercycle takes: " << cnt << endl;
         print_all_states();
     }
 
@@ -66,7 +70,7 @@ private:
     set<int> get_lockets_in_tx_state() {
         set<int> ans;
         for (auto &locket: *lockets) {
-            if (locket.state == TX) ans.insert(locket.locket_id);
+            if (locket.state == TX || locket.state == BEFORE_RX_TX) ans.insert(locket.locket_id);
         }
         return ans;
     }
